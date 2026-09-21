@@ -3,6 +3,8 @@
 Aplicação web *mobile-first*, em português de Portugal e com valores em euros (€), que junta
 **tarefas, horário, calendário, finanças, listas de compras e notas temporárias** num só lugar.
 
+**Aplicação publicada:** <https://my-life-manager-marcio-silva.vercel.app>
+
 Primeira versão funcional para testes: **sem início de sessão**. Cada pessoa tem uma *workspace*
 identificada por um endereço secreto (`/w/<identificador>`). Quem tiver esse link tem acesso aos
 dados dessa área — e apenas dessa área.

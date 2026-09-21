@@ -14,3 +14,4 @@ tsconfig.tsbuildinfo
 
 # Configuração local do Claude Code
 .claude/
+.env*
