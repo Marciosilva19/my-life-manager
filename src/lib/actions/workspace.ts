@@ -98,56 +98,114 @@ export async function seedDemo(form: FormData): Promise<void> {
   const month = startOfMonth(today).slice(0, 7);
   const demo = { workspace_id: ws.id, is_demo: true };
 
-  await client.from("tasks").insert([
-    { ...demo, title: "Beber 1,5 L de água", recurrence: "daily", priority: "baixa", category: "saúde", due_date: today },
-    { ...demo, title: "Entregar relatório de Estatística", due_date: addDays(today, 2), due_time: "17:00", priority: "alta", category: "estudos" },
-    { ...demo, title: "Aspirar a sala", due_date: today, due_time: "19:30", priority: "media", category: "casa" },
-    { ...demo, title: "Marcar consulta de rotina", due_date: addDays(today, 5), priority: "media", category: "saúde" },
-    { ...demo, title: "Rever apontamentos", recurrence: "weekdays", recurrence_days: [1, 3], due_date: today, due_time: "21:00", category: "estudos" },
+  /**
+   * Numa inserção em lote, o supabase-js envia a união das chaves de todos os
+   * objetos e o PostgREST grava NULL onde a chave falta — não o valor por
+   * omissão da coluna. Por isso cada linha é construída a partir de um molde
+   * com todos os campos preenchidos.
+   */
+  async function insertAll(table: string, rows: Record<string, unknown>[]) {
+    const { error } = await client.from(table).insert(rows);
+    if (error) throw new Error(`Não foi possível criar os dados de exemplo (${table}): ${error.message}`);
+  }
+
+  const task = (t: Record<string, unknown>) => ({
+    ...demo,
+    description: null,
+    due_date: null,
+    due_time: null,
+    priority: "media",
+    category: "pessoal",
+    recurrence: "none",
+    recurrence_days: [],
+    show_in_calendar: true,
+    ...t,
+  });
+
+  const event = (e: Record<string, unknown>) => ({
+    ...demo,
+    kind: "outro",
+    weekday: null,
+    date: null,
+    repeats_weekly: true,
+    color: "rosa",
+    location: null,
+    notes: null,
+    ...e,
+  });
+
+  const movement = (m: Record<string, unknown>) => ({
+    ...demo,
+    type: "expense",
+    category: "outros",
+    description: null,
+    recurrence: "none",
+    ...m,
+  });
+
+  const bill = (b: Record<string, unknown>) => ({ ...demo, recurrence: "monthly", paid_dates: [], ...b });
+
+  await insertAll("tasks", [
+    task({ title: "Beber 1,5 L de água", recurrence: "daily", priority: "baixa", category: "saúde", due_date: today }),
+    task({ title: "Entregar relatório de Estatística", due_date: addDays(today, 2), due_time: "17:00", priority: "alta", category: "estudos" }),
+    task({ title: "Aspirar a sala", due_date: today, due_time: "19:30", category: "casa" }),
+    task({ title: "Marcar consulta de rotina", due_date: addDays(today, 5), category: "saúde" }),
+    task({ title: "Rever apontamentos", recurrence: "weekdays", recurrence_days: [1, 3], due_date: today, due_time: "21:00", category: "estudos" }),
   ]);
 
-  await client.from("events").insert([
-    { ...demo, title: "Álgebra Linear", kind: "aula", weekday: 1, start_time: "09:00", end_time: "10:30", color: "rosa", location: "Sala B2.1" },
-    { ...demo, title: "Programação", kind: "aula", weekday: 2, start_time: "11:00", end_time: "13:00", color: "azul", location: "Lab 3" },
-    { ...demo, title: "Ginásio", kind: "ginasio", weekday: 3, start_time: "18:30", end_time: "19:30", color: "verde" },
-    { ...demo, title: "Estudo acompanhado", kind: "estudo", weekday: 4, start_time: "15:00", end_time: "17:00", color: "lilas" },
-    { ...demo, title: "Turno na loja", kind: "trabalho", weekday: 6, start_time: "10:00", end_time: "16:00", color: "ambar", location: "Centro comercial" },
+  await insertAll("events", [
+    event({ title: "Álgebra Linear", kind: "aula", weekday: 1, start_time: "09:00", end_time: "10:30", color: "rosa", location: "Sala B2.1" }),
+    event({ title: "Programação", kind: "aula", weekday: 2, start_time: "11:00", end_time: "13:00", color: "azul", location: "Lab 3" }),
+    event({ title: "Ginásio", kind: "ginasio", weekday: 3, start_time: "18:30", end_time: "19:30", color: "verde" }),
+    event({ title: "Estudo acompanhado", kind: "estudo", weekday: 4, start_time: "15:00", end_time: "17:00", color: "lilas" }),
+    event({ title: "Turno na loja", kind: "trabalho", weekday: 6, start_time: "10:00", end_time: "16:00", color: "ambar", location: "Centro comercial" }),
   ]);
 
-  await client.from("transactions").insert([
-    { ...demo, amount: 850, type: "income", category: "outros", date: `${month}-01`, description: "Bolsa/ordenado", recurrence: "monthly" },
-    { ...demo, amount: 62.4, type: "expense", category: "alimentação", date: `${month}-04`, description: "Compras da semana" },
-    { ...demo, amount: 30, type: "expense", category: "transporte", date: `${month}-05`, description: "Passe mensal", recurrence: "monthly" },
-    { ...demo, amount: 12.99, type: "expense", category: "subscrições", date: `${month}-07`, description: "Streaming", recurrence: "monthly" },
-    { ...demo, amount: 24, type: "expense", category: "lazer", date: `${month}-12`, description: "Cinema com amigos" },
-    { ...demo, amount: 45.5, type: "expense", category: "estudos", date: `${month}-15`, description: "Manual de apoio" },
+  await insertAll("transactions", [
+    movement({ amount: 850, type: "income", date: `${month}-01`, description: "Bolsa/ordenado", recurrence: "monthly" }),
+    movement({ amount: 62.4, category: "alimentação", date: `${month}-04`, description: "Compras da semana" }),
+    movement({ amount: 30, category: "transporte", date: `${month}-05`, description: "Passe mensal", recurrence: "monthly" }),
+    movement({ amount: 12.99, category: "subscrições", date: `${month}-07`, description: "Streaming", recurrence: "monthly" }),
+    movement({ amount: 24, category: "lazer", date: `${month}-12`, description: "Cinema com amigos" }),
+    movement({ amount: 45.5, category: "estudos", date: `${month}-15`, description: "Manual de apoio" }),
   ]);
 
-  await client.from("budgets").insert([
+  await insertAll("budgets", [
     { ...demo, category: "alimentação", amount: 200 },
     { ...demo, category: "transporte", amount: 60 },
     { ...demo, category: "lazer", amount: 80 },
   ]);
 
-  await client.from("bills").insert([
-    { ...demo, name: "Renda", amount: 420, due_date: `${month}-08`, recurrence: "monthly" },
-    { ...demo, name: "Eletricidade", amount: 38.7, due_date: addDays(today, 3), recurrence: "monthly" },
-    { ...demo, name: "Internet", amount: 29.9, due_date: addDays(today, 11), recurrence: "monthly" },
+  await insertAll("bills", [
+    bill({ name: "Renda", amount: 420, due_date: `${month}-08` }),
+    bill({ name: "Eletricidade", amount: 38.7, due_date: addDays(today, 3) }),
+    bill({ name: "Internet", amount: 29.9, due_date: addDays(today, 11) }),
   ]);
 
-  const { data: list } = await client
+  const { data: list, error: listError } = await client
     .from("shopping_lists")
     .insert({ ...demo, name: "Supermercado" })
     .select("id")
     .single();
+  if (listError) throw new Error(`Não foi possível criar a lista de exemplo: ${listError.message}`);
 
   if (list) {
-    await client.from("shopping_items").insert([
-      { list_id: list.id, is_demo: true, name: "Bananas", quantity: "1 kg", category: "fruta e legumes", position: 1 },
-      { list_id: list.id, is_demo: true, name: "Leite", quantity: "6 un", category: "frescos", position: 2 },
-      { list_id: list.id, is_demo: true, name: "Massa integral", category: "mercearia", position: 3 },
-      { list_id: list.id, is_demo: true, name: "Detergente da loiça", category: "limpeza", position: 4 },
-      { list_id: list.id, is_demo: true, name: "Café", quantity: "250 g", category: "mercearia", bought: true, position: 5 },
+    const item = (i: Record<string, unknown>) => ({
+      list_id: list.id,
+      is_demo: true,
+      quantity: null,
+      category: "outros",
+      notes: null,
+      bought: false,
+      ...i,
+    });
+
+    await insertAll("shopping_items", [
+      item({ name: "Bananas", quantity: "1 kg", category: "fruta e legumes", position: 1 }),
+      item({ name: "Leite", quantity: "6 un", category: "frescos", position: 2 }),
+      item({ name: "Massa integral", category: "mercearia", position: 3 }),
+      item({ name: "Detergente da loiça", category: "limpeza", position: 4 }),
+      item({ name: "Café", quantity: "250 g", category: "mercearia", bought: true, position: 5 }),
     ]);
   }
 
@@ -156,9 +214,9 @@ export async function seedDemo(form: FormData): Promise<void> {
   const tonight = new Date();
   tonight.setHours(23, 59, 0, 0);
 
-  await client.from("notes").insert([
-    { ...demo, title: "Cupão -15% na livraria", body: "Código LIVRO15 na compra online.", expires_at: in3days.toISOString() },
-    { ...demo, title: "Devolver livro à biblioteca", body: "Balcão do piso 1.", expires_at: tonight.toISOString() },
+  await insertAll("notes", [
+    { ...demo, title: "Cupão -15% na livraria", body: "Código LIVRO15 na compra online.", expires_at: in3days.toISOString(), task_id: null },
+    { ...demo, title: "Devolver livro à biblioteca", body: "Balcão do piso 1.", expires_at: tonight.toISOString(), task_id: null },
   ]);
 
   refresh(ws.slug);
