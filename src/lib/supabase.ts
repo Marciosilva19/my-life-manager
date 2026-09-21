@@ -5,8 +5,9 @@ import { createClient, type SupabaseClient } from "@supabase/supabase-js";
  * Cliente Supabase exclusivo do servidor.
  *
  * Toda a leitura/escrita acontece em Server Components e Server Actions, com a
- * chave service_role. O browser nunca recebe a chave nem fala diretamente com a
- * base de dados, o que garante que uma workspace só devolve os seus dados.
+ * chave secreta do projeto (sb_secret_... nos projetos novos, service_role nos
+ * antigos). O browser nunca recebe a chave nem fala diretamente com a base de
+ * dados, o que garante que uma workspace só devolve os seus dados.
  */
 let cached: SupabaseClient | null = null;
 

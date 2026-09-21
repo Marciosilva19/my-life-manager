@@ -47,7 +47,8 @@ dados dessa área — e apenas dessa área.
 ### Como os dados são protegidos sem login
 
 Todo o acesso à base de dados acontece **no servidor** (Server Components e Server Actions), com a
-chave `service_role`. O browser nunca recebe chaves nem fala diretamente com o Supabase:
+chave secreta do servidor (`sb_secret_…`, ou `service_role` nos projetos antigos). O
+browser nunca recebe chaves nem fala diretamente com o Supabase:
 
 - cada leitura e cada escrita é filtrada pelo `workspace_id` resolvido a partir do identificador
   secreto do URL;
@@ -87,10 +88,14 @@ npm run typecheck  # verificação de tipos
 3. Copiar todo o conteúdo de [`supabase/migrations/0001_init.sql`](supabase/migrations/0001_init.sql),
    colar e carregar em **Run**. Isto cria as tabelas, os índices, a função de limpeza das notas e
    ativa o RLS.
-4. Abrir **Project Settings → API** e copiar:
-   - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
-   - **service_role** (em *Project API keys*) → `SUPABASE_SERVICE_ROLE_KEY`
-   - **anon public** → `NEXT_PUBLIC_SUPABASE_ANON_KEY` (opcional nesta fase)
+4. Copiar as credenciais:
+   - **Project Settings → Data API → Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
+   - **Project Settings → API Keys → Secret keys → `default`** (começa por `sb_secret_`)
+     → `SUPABASE_SERVICE_ROLE_KEY`
+     *Em projetos criados antes das novas chaves, o equivalente é a `service_role`,
+     no separador "Legacy anon, service_role". Qualquer uma funciona.*
+   - **Publishable key** (`sb_publishable_...`) ou **anon** → `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+     (opcional nesta fase)
 5. *(Opcional)* Limpeza das notas expiradas também do lado do servidor:
    **Database → Extensions** → ativar `pg_cron` e correr no SQL Editor:
 
@@ -109,11 +114,11 @@ Criar `.env.local` a partir de `.env.example`:
 
 | Variável | Onde se obtém | Obrigatória |
 | --- | --- | --- |
-| `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → API → Project URL | Sim |
-| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API → `service_role` | Sim |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Project Settings → API → `anon public` | Não (reservada para o futuro) |
+| `NEXT_PUBLIC_SUPABASE_URL` | Project Settings → Data API → Project URL | Sim |
+| `SUPABASE_SERVICE_ROLE_KEY` | Project Settings → API Keys → Secret keys (`sb_secret_…`), ou a `service_role` nos projetos antigos | Sim |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Project Settings → API Keys → Publishable key | Não (reservada para o futuro) |
 
-> A chave `service_role` dá acesso total à base de dados. Usar **apenas** em variáveis de servidor,
+> A chave secreta dá acesso total à base de dados. Usar **apenas** em variáveis de servidor,
 > nunca com o prefixo `NEXT_PUBLIC_`, e nunca a colocar no repositório.
 
 ---
